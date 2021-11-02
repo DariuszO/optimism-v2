@@ -41,7 +41,7 @@ import {
 import { WebWalletError } from 'services/errorService'
 
 //Base contracts
-import AddressManagerJson from '../deployment/artifacts-base/contracts/libraries/resolver/Lib_AddressManager.sol/Lib_AddressManager.json' 
+import AddressManagerJson from '../deployment/artifacts-base/contracts/libraries/resolver/Lib_AddressManager.sol/Lib_AddressManager.json'
 import L1StandardBridgeJson from '../deployment/artifacts-base/contracts/L1/messaging/L1StandardBridge.sol/L1StandardBridge.json'
 import L2StandardBridgeJson from '../deployment/artifacts-base/contracts/L2/messaging/L2StandardBridge.sol/L2StandardBridge.json'
 
@@ -61,7 +61,7 @@ import L2ERC721Json    from '../deployment/artifacts-boba/contracts/ERC721Genesi
 import L2ERC721RegJson from '../deployment/artifacts-boba/contracts/ERC721Registry.sol/ERC721Registry.json'
 
 // DAO
-import Boba from "../deployment/artifacts-boba/contracts/standards/L2GovernanceERC20.sol/L2GovernanceERC20.json" 
+import Boba from "../deployment/artifacts-boba/contracts/standards/L2GovernanceERC20.sol/L2GovernanceERC20.json"
 import GovernorBravoDelegate from "../deployment/contracts/GovernorBravoDelegate.json"
 import GovernorBravoDelegator from "../deployment/contracts/GovernorBravoDelegator.json"
 
@@ -73,6 +73,8 @@ import etherScanInstance from 'api/etherScanAxios'
 import omgxWatcherAxiosInstance from 'api/omgxWatcherAxios'
 import coinGeckoAxiosInstance from 'api/coinGeckoAxios'
 import { sortRawTokens } from 'util/common'
+
+require('dotenv').config()
 
 const ERROR_ADDRESS = '0x0000000000000000000000000000000000000000'
 const L1_ETH_Address = '0x0000000000000000000000000000000000000000'
@@ -112,10 +114,10 @@ class NetworkService {
     this.L2_TEST_Contract = null
     this.L1_OMG_Contract = null
     this.L2_ETH_Contract = null
-    
+
     this.ERC721Contract = null
     this.ERC721RegContract = null
-    
+
     this.L2TokenPoolContract = null
     this.AtomicSwapContract = null
 
@@ -280,7 +282,7 @@ class NetworkService {
       return false
     } else {
       allAddresses = {
-        ...allAddresses, 
+        ...allAddresses,
         [varToSet]: address
       }
       console.log(contractName +' pulled from AddressManager and set to:', address)
@@ -386,28 +388,28 @@ class NetworkService {
 
       //L2StandardBridgeAddress is a predeploy, so add by hand....
       allAddresses = {
-        ...allAddresses, 
+        ...allAddresses,
         'L2StandardBridgeAddress': L2StandardBridgeAddress
       }
 
       //L2MessengerAddress is a predeploy, so add by hand....
       allAddresses = {
-        ...allAddresses, 
+        ...allAddresses,
         'L2MessengerAddress': L2MessengerAddress
       }
 
       //L2_ETH_Address is a predeploy, so add by hand....
       allAddresses = {
-        ...allAddresses, 
+        ...allAddresses,
         'L2_ETH_Address': L2_ETH_Address
       }
 
       //L1_ETH_Address is a predeploy, so add by hand....
       allAddresses = {
-        ...allAddresses, 
+        ...allAddresses,
         'L1_ETH_Address': L1_ETH_Address
       }
-     
+
       this.L1StandardBridgeContract = new ethers.Contract(
         allAddresses.L1StandardBridgeAddress,
         L1StandardBridgeJson.abi,
@@ -415,13 +417,14 @@ class NetworkService {
       )
       console.log("L1StandardBridgeContract:", this.L1StandardBridgeContract.address)
 
-      const supportedTokens = [ 'USDT', 'DAI', 'USDC', 'WBTC', 
-                                'REP',  'BAT', 'ZRX',  'SUSHI', 
-                                'LINK', 'UNI', 'BOBA', 'OMG',   
-                                'FRAX', 'FXS' ]
+      const supportedTokens = [ 'USDT', 'DAI', 'USDC', 'WBTC',
+                                'REP',  'BAT', 'ZRX',  'SUSHI',
+                                'LINK', 'UNI', 'BOBA', 'OMG',
+                                'FRAX', 'FXS', 'DODO', 'UST'
+                              ]
 
       await Promise.all(supportedTokens.map(async (key) => {
-          
+
         const L1a = await this.AddressManager.getAddress('TK_L1'+key)
         const L2a = await this.AddressManager.getAddress('TK_L2'+key)
 
@@ -497,7 +500,7 @@ class NetworkService {
         L2LPJson.abi,
         this.provider.getSigner()
       )
-      
+
       // if (!(await this.getAddress('L2ERC721', 'L2ERC721Address'))) return
       // if (!(await this.getAddress('L2ERC721Reg', 'L2ERC721RegAddress'))) return
 
@@ -536,7 +539,7 @@ class NetworkService {
       })
 
       //console.log('Setting up BOBA for the DAO:',allTokens.BOBA.L2)
-      
+
       // this.BobaContract = new ethers.Contract(
       //   allTokens.BOBA.L2,
       //   Boba.abi,
@@ -548,7 +551,7 @@ class NetworkService {
 
         if (!(await this.getAddress('GovernorBravoDelegate', 'GovernorBravoDelegate'))) return
         if (!(await this.getAddress('GovernorBravoDelegator', 'GovernorBravoDelegator'))) return
-        
+
         this.delegateContract = new ethers.Contract(
           allAddresses.GovernorBravoDelegate,
           GovernorBravoDelegate.abi,
@@ -561,7 +564,7 @@ class NetworkService {
           this.provider.getSigner()
         )
       }
-      
+
       this.bindProviderListeners()
 
       return 'enabled'
@@ -611,7 +614,7 @@ class NetworkService {
     //local does not have a blockexplorer
     if( masterConfig !== 'local') {
       blockExplorerUrls = [nw[masterConfig].L2.blockExplorer.slice(0, -1)]
-    } 
+    }
 
     //the chainParams are only needed for the L2's
     const chainParam = {
@@ -714,109 +717,94 @@ class NetworkService {
       //add the chain: 'L1pending' field
       txL1pending = responseL1pending.data.map(v => ({...v, chain: 'L1pending'}))
       //console.log("txL1pending",txL1pending)
-      const annotated = await this.parseTransaction(
+      const annotated = //await this.parseTransaction(
         [
           ...txL1,
           ...txL2,
           ...txL1pending //the new data product
         ]
-      )
+      //)
       //console.log("annotated:",annotated)
       return annotated
     }
 
   }
 
-  /* Where possible, annotate the transactions
-  based on contract addresses */
-  async parseTransaction( transactions ) {
+  // /* Where possible, annotate the transactions
+  // based on contract addresses */
+  // async parseTransaction( transactions ) {
 
-    // NOT SUPPORTED on LOCAL
-    if (this.masterSystemConfig === 'local') return
+  //   // NOT SUPPORTED on LOCAL
+  //   if (this.masterSystemConfig === 'local') return
 
-    var annotatedTX = transactions.map(item => {
+  //   var annotatedTX = transactions.map(item => {
 
-      let to = item.to
+  //     let to = item.to
 
-      if ( to === null || to === '') {
-        return item
-      }
+  //     if ( to === null || to === '') {
+  //       return item
+  //     }
 
-      to = to.toLowerCase()
+  //     to = to.toLowerCase()
 
-      if (to === allAddresses.L2LPAddress.toLowerCase()) {
-        //console.log("L2->L1 Swap Off")
-        return Object.assign({}, item, { typeTX: 'Fast Bridge to L1' })
-      }
+  //     if (to === allAddresses.L2LPAddress.toLowerCase()) {
+  //       //console.log("L2->L1 Swap Off")
+  //       return Object.assign({}, item, { typeTX: 'Fast Bridge to L1' })
+  //     }
 
-      if (to === allAddresses.L1LPAddress.toLowerCase()) {
-        //console.log("L1->L2 Swap On")
-        return Object.assign({}, item, { typeTX: 'Fast Bridge to L2' })
-      }
+  //     if (to === allAddresses.L1LPAddress.toLowerCase()) {
+  //       //console.log("L1->L2 Swap On")
+  //       return Object.assign({}, item, { typeTX: 'Fast Bridge to L2' })
+  //     }
 
-      if (to === allAddresses.L1StandardBridgeAddress.toLowerCase()) {
-        //console.log("L1->L2 Traditional Deposit")
-        return Object.assign({}, item, { typeTX: 'Classic Bridge to L2' })
-      }
+  //     if (to === allAddresses.L1StandardBridgeAddress.toLowerCase()) {
+  //       //console.log("L1->L2 Traditional Deposit")
+  //       return Object.assign({}, item, { typeTX: 'Classic Bridge to L2' })
+  //     }
 
-      if (to === allTokens.BOBA.L1.toLowerCase()) {
-        //console.log("L1 ERC20 Amount Approval")
-        return Object.assign({}, item, { typeTX: 'L1 ERC20 Amount Approval' })
-      }
+  //     if (to === allAddresses.L2StandardBridgeAddress.toLowerCase()) {
+  //       //console.log("L2 Standard Bridge")
+  //       return Object.assign({}, item, { typeTX: 'Classic Bridge to L1' })
+  //     }
 
-      if (to === allAddresses.L2StandardBridgeAddress.toLowerCase()) {
-        //console.log("L2 Standard Bridge")
-        return Object.assign({}, item, { typeTX: 'Classic Bridge to L1' })
-      }
+  //     if (to === allTokens.BOBA.L1.toLowerCase()) {
+  //       //console.log("L1 ERC20 Amount Approval")
+  //       return Object.assign({}, item, { typeTX: 'L1 ERC20 Amount Approval' })
+  //     }
 
-      // if (to === this.L1Message.toLowerCase()) {
-      //   //console.log("L1 Message")
-      //   return Object.assign({}, item, { typeTX: 'L1 Message' })
-      // }
+  //     if (to === allTokens.BOBA.L2.toLowerCase()) {
+  //       return Object.assign({}, item, { typeTX: 'L2 Standard Token' })
+  //     }
 
-      // if (to === this.L2Message.toLowerCase()) {
-      //   //console.log("L2 Message")
-      //   return Object.assign({}, item, { typeTX: 'L2 Message' })
-      // }
+  //     if (to === allAddresses.L2_ETH_Address.toLowerCase()) {
+  //       //console.log("L2 ETH Message")
+  //       return Object.assign({}, item, { typeTX: 'L2 ETH Ops (such as a L2->L2 Transfer)' })
+  //     }
 
-      if (to === allTokens.BOBA.L2.toLowerCase()) {
-        return Object.assign({}, item, { typeTX: 'L2 Standard Token' })
-      }
+  //     if (item.crossDomainMessage) {
+  //       if(to === allAddresses.L2LPAddress.toLowerCase()) {
+  //         return Object.assign({}, item, { typeTX: 'FAST EXIT via L2LP' })
+  //       }
+  //       else if (to === allTokens.BOBA.L2.toLowerCase()) {
+  //         return Object.assign({}, item, { typeTX: 'xDomain (Standard Token)' })
+  //       }
+  //       else if (to === allAddresses.L2_ETH_Address.toLowerCase()) {
+  //         //console.log("Found EXIT: L2_ETH_Address")
+  //         return Object.assign({}, item, { typeTX: 'EXIT ETH' })
+  //       }
+  //     }
 
-      if (to === allAddresses.L2_ETH_Address.toLowerCase()) {
-        //console.log("L2 ETH Message")
-        return Object.assign({}, item, { typeTX: 'L2 ETH Ops (such as a L2->L2 Transfer)' })
-      }
+  //     return Object.assign({}, item, { typeTX: 'Approval/Other (' + to + ')' })
 
-      // if (to === allAddresses.L2_ETH_Address.toLowerCase()) {
-      //   //console.log("L2 ETH Message")
-      //   return Object.assign({}, item, { typeTX: 'L2 ETH Token' })
-      // }
+  //   }) //map
 
-      if (item.crossDomainMessage) {
-        if(to === allAddresses.L2LPAddress.toLowerCase()) {
-          return Object.assign({}, item, { typeTX: 'FAST EXIT via L2LP' })
-        }
-        else if (to === allTokens.BOBA.L2.toLowerCase()) {
-          return Object.assign({}, item, { typeTX: 'xDomain (Standard Token)' })
-        }
-        else if (to === allAddresses.L2_ETH_Address.toLowerCase()) {
-          //console.log("Found EXIT: L2_ETH_Address")
-          return Object.assign({}, item, { typeTX: 'EXIT ETH' })
-        }
-      }
+  //   return annotatedTX
 
-      return Object.assign({}, item, { typeTX: 'Approval/Other (' + to + ')' })
-
-    }) //map
-
-    return annotatedTX
-
-  }
+  // }
 
   async getExits() {
 
-    console.log("getExits")
+    console.log("getExits()")
 
     // NOT SUPPORTED on LOCAL
     if (this.masterSystemConfig === 'local') return
@@ -829,17 +817,11 @@ class NetworkService {
       toRange: 1000,
     })
 
-    console.log("getExits:",response)
-
     if (response.status === 201) {
       const transactions = response.data
+      console.log(transactions)
       const filteredTransactions = transactions.filter(
-        (i) =>
-          [
-            allAddresses.L2LPAddress.toLowerCase(),
-            allTokens.BOBA.L2.toLowerCase(),
-            allAddresses.L2_ETH_Address.toLowerCase(),
-          ].includes(i.to ? i.to.toLowerCase() : null) && i.crossDomainMessage
+        (i) => i.exitL2 && i.crossDomainMessage
       )
       return { exited: filteredTransactions }
     }
@@ -848,7 +830,7 @@ class NetworkService {
 
   //goal is to find your NFTs and NFT contracts based on local cache and registry data
   async fetchNFTs() {
-    
+
     return //still need to deploy ERC721 contracts on mainnet
 
     console.log("scanning for NFTs...")
@@ -982,7 +964,7 @@ class NetworkService {
           const nftMeta = await contract.tokenURI(tokenID)
 
           console.log("nftMeta:",nftMeta)
-         
+
           const UUID = address.substring(1, 6) + '_' + tokenID.toString() + '_' + this.account.substring(1, 6)
           const { url , attributes = []} = await getNftImageUrl(nftMeta !== '' ? nftMeta : `https://boredapeyachtclub.com/api/mutants/121`)
 
@@ -1008,7 +990,7 @@ class NetworkService {
     // if the token is already in the list, then this function does nothing
     // but if a new token shows up, then it will get added
     if(allTokens === null) return
-    
+
     Object.keys(allTokens).forEach((token, i) => {
       //console.log("allTokens[token].L1:",allTokens[token].L1)
       getToken(allTokens[token].L1)
@@ -1069,9 +1051,9 @@ class NetworkService {
       const getERC20Balance = async(token, tokenAddress, layer, provider) => {
         const balance = await tokenC.attach(tokenAddress).connect(provider).balanceOf(this.account)
         return {
-          ...token, 
+          ...token,
           balance: new BN(balance.toString()),
-          layer, 
+          layer,
           address: layer === 'L1' ? token.addressL1 : token.addressL2,
           symbol: token.symbolL1
         }
@@ -1126,10 +1108,13 @@ class NetworkService {
     console.log("this.L1StandardBridgeContract:",this.L1StandardBridgeContract)
 
     updateSignatureStatus_depositTRAD(false)
-    
+
     try {
 
-      const depositTxStatus = await this.L1StandardBridgeContract.depositETH(
+      const time_start = new Date().getTime()
+      console.log("TX start time:", time_start)
+
+      const depositTx = await this.L1StandardBridgeContract.depositETH(
         this.L2GasLimit,
         utils.formatBytes32String(new Date().getTime().toString()),
         {
@@ -1138,22 +1123,47 @@ class NetworkService {
       )
 
       //at this point the tx has been submitted, and we are waiting...
-      await depositTxStatus.wait()
+      await depositTx.wait()
+
+      const block = await this.L1Provider.getTransaction(depositTx.hash)
+      console.log(' block:', block)
 
       //closes the Deposit modal
       updateSignatureStatus_depositTRAD(true)
 
-      const [l1ToL2msgHash] = await this.watcher.getMessageHashesFromL1Tx(
-        depositTxStatus.hash
+      const [msgHash] = await this.watcher.getMessageHashesFromL1Tx(
+        depositTx.hash
       )
-      console.log(' got L1->L2 message hash', l1ToL2msgHash)
+      console.log(' got L1->L2 message hash', msgHash)
 
-      const l2Receipt = await this.watcher.getL2TransactionReceipt(
-        l1ToL2msgHash
+      const receipt = await this.watcher.getL2TransactionReceipt(
+        msgHash
       )
-      console.log(' completed Deposit! L2 tx hash:', l2Receipt.transactionHash)
+      console.log(' completed Deposit! L2 tx hash:', receipt.transactionHash)
 
-      return l2Receipt
+      const time_stop = new Date().getTime()
+      console.log("TX finish time:", time_stop)
+
+      const data = {
+        "key": process.env.REACT_APP_SPEED_CHECK,
+        "hash": depositTx.hash,
+        "l1Tol2": false, //since we are going L2->L1
+        "startTime": time_start,
+        "endTime": time_stop,
+        "block": block.blockNumber,
+        "cdmHash": receipt.transactionHash,
+        "cdmBlock": receipt.blockNumber
+      }
+
+      console.log("Speed checker data payload:", data)
+
+      const speed = await omgxWatcherAxiosInstance(
+        this.masterSystemConfig
+      ).post('send.crossdomainmessage', data)
+
+      console.log("Speed checker:", speed)
+
+      return receipt
     } catch(error) {
       console.log("NS: depositETHL2 error:",error)
       return error
@@ -1162,19 +1172,19 @@ class NetworkService {
 
   //Transfer funds from one account to another, on the L2
   async transfer(address, value_Wei_String, currency) {
-    
+
     let tx = null
 
     try {
-      
+
       if(currency === allAddresses.L2_ETH_Address) {
         //we are sending ETH
 
         let wei = BigNumber.from(value_Wei_String)
 
-        tx = await this.provider.send('eth_sendTransaction', 
+        tx = await this.provider.send('eth_sendTransaction',
           [
-            { 
+            {
               from: this.account,
               to: address,
               value: ethers.utils.hexlify(wei)
@@ -1190,7 +1200,7 @@ class NetworkService {
         )
         await tx.wait()
       }
-      
+
       return tx
     } catch (error) {
       console.log("NS: transfer error:", error)
@@ -1430,7 +1440,7 @@ class NetworkService {
       /* OMG IS A SPECIAL CASE - allowance needs to be
       set to zero, and then set to actual amount */
       if( allowance_BN.gt(BigNumber.from(0)) &&
-          (currency.toLowerCase() === this["L1_OMG_Address"].toLowerCase())
+          (currency.toLowerCase() === allTokens.OMG.L1.toLowerCase())
       )
       {
         console.log("OMG Token allowance reset")
@@ -1460,7 +1470,10 @@ class NetworkService {
         console.log("ERC 20 L1 ops approved:",approveStatus)
       }
 
-      const depositTxStatus = await this.L1StandardBridgeContract.depositERC20(
+      const time_start = new Date().getTime()
+      console.log("TX start time:", time_start)
+
+      const depositTx = await this.L1StandardBridgeContract.depositERC20(
         currency,
         currencyL2,
         value_Wei_String,
@@ -1468,27 +1481,52 @@ class NetworkService {
         utils.formatBytes32String(new Date().getTime().toString())
       )
 
-      console.log("depositTxStatus:",depositTxStatus)
+      console.log("depositTxStatus:",depositTx)
 
       //at this point the tx has been submitted, and we are waiting...
-      await depositTxStatus.wait()
+      await depositTx.wait()
+
+      const block = await this.L1Provider.getTransaction(depositTx.hash)
+      console.log(' block:', block)
 
       //closes the Deposit modal
       updateSignatureStatus_depositTRAD(true)
 
-      const [l1ToL2msgHash] = await this.watcher.getMessageHashesFromL1Tx(
-        depositTxStatus.hash
+      const [msgHash] = await this.watcher.getMessageHashesFromL1Tx(
+        depositTx.hash
       )
-      console.log(' got L1->L2 message hash', l1ToL2msgHash)
+      console.log(' got L1->L2 message hash', msgHash)
 
-      const l2Receipt = await this.watcher.getL2TransactionReceipt(
-        l1ToL2msgHash
+      const receipt = await this.watcher.getL2TransactionReceipt(
+        msgHash
       )
-      console.log(' completed Deposit! L2 tx hash:', l2Receipt.transactionHash)
+      console.log(' completed Deposit! L2 tx hash:', receipt.transactionHash)
+
+      const time_stop = new Date().getTime()
+      console.log("TX finish time:", time_stop)
+
+      const data = {
+        "key": process.env.REACT_APP_SPEED_CHECK,
+        "hash": depositTx.hash,
+        "l1Tol2": true,
+        "startTime": time_start,
+        "endTime": time_stop,
+        "block": block.blockNumber,
+        "cdmHash": receipt.transactionHash,
+        "cdmBlock": receipt.blockNumber
+      }
+
+      console.log("Speed checker data payload:", data)
+
+      const speed = await omgxWatcherAxiosInstance(
+        this.masterSystemConfig
+      ).post('send.crossdomainmessage', data)
+
+      console.log("Speed checker:", speed)
 
       this.getBalances()
 
-      return l2Receipt
+      return receipt
     } catch (error) {
       throw new WebWalletError({
         originalError: error,
@@ -1559,7 +1597,7 @@ class NetworkService {
       L1LPContract.ownerRewardFeeRate()
     ])
     const feeRate = Number(userRewardFeeRate) + Number(ownerRewardFeeRate)
-    
+
     return (feeRate / 10).toFixed(1)
   }
 
@@ -1613,12 +1651,12 @@ class NetworkService {
     const L1LPInfoPromise = []
 
     const getL1LPInfoPromise = async(tokenAddress) => {
-      
+
       let tokenBalance
       let tokenSymbol
       let tokenName
       let decimals
-      
+
       if (tokenAddress === allAddresses.L1_ETH_Address) {
         console.log("Getting eth balance:", tokenAddress)
         //getting eth balance
@@ -1642,7 +1680,7 @@ class NetworkService {
     }
 
     tokenAddressList.forEach((tokenAddress) => L1LPInfoPromise.push(getL1LPInfoPromise(tokenAddress)))
-    
+
     const L1LPInfo = await Promise.all(L1LPInfoPromise)
 
     sortRawTokens(L1LPInfo).forEach((token) => {
@@ -1874,9 +1912,12 @@ class NetworkService {
   async depositL1LP(currency, value_Wei_String) {
 
     updateSignatureStatus_depositLP(false)
-    
+
     console.log("depositL1LP:",currency)
     console.log("value_Wei_String",value_Wei_String)
+
+    const time_start = new Date().getTime()
+    console.log("TX start time:", time_start)
 
     const depositTX = await this.L1LPContract.clientDepositL1(
       value_Wei_String,
@@ -1889,18 +1930,43 @@ class NetworkService {
     //at this point the tx has been submitted, and we are waiting...
     await depositTX.wait()
 
+    const block = await this.L1Provider.getTransaction(depositTX.hash)
+    console.log(' block:', block)
+
     updateSignatureStatus_depositLP(true)
 
     // Waiting the response from L2
-    const [l1ToL2msgHash] = await this.watcher.getMessageHashesFromL1Tx(
+    const [msgHash] = await this.watcher.getMessageHashesFromL1Tx(
       depositTX.hash
     )
-    console.log(' got L1->L2 message hash', l1ToL2msgHash)
+    console.log(' got L1->L2 message hash', msgHash)
 
-    const l2Receipt = await this.watcher.getL2TransactionReceipt(l1ToL2msgHash)
-    console.log(' completed swap-on ! L2 tx hash:', l2Receipt.transactionHash)
+    const receipt = await this.watcher.getL2TransactionReceipt(msgHash)
+    console.log(' completed swap-on ! L2 tx hash:', receipt.transactionHash)
 
-    return l2Receipt
+    const time_stop = new Date().getTime()
+    console.log("TX finish time:", time_stop)
+
+    const data = {
+      "key": process.env.REACT_APP_SPEED_CHECK,
+      "hash": depositTX.hash,
+      "l1Tol2": true,
+      "startTime": time_start,
+      "endTime": time_stop,
+      "block": block.blockNumber,
+      "cdmHash": receipt.transactionHash,
+      "cdmBlock": receipt.blockNumber
+    }
+
+    console.log("Speed checker data payload:", data)
+
+    const speed = await omgxWatcherAxiosInstance(
+      this.masterSystemConfig
+    ).post('send.crossdomainmessage', data)
+
+    console.log("Speed checker:", speed)
+
+    return receipt
   }
 
   /***************************************/
@@ -1984,14 +2050,14 @@ class NetworkService {
       currencyAddress === allAddresses.L2_ETH_Address ? { value : '1'} : {}
     )
 
-    const despositGas_BN = await this.L2Provider.estimateGas(tx2)
-    console.log("Fast exit gas", despositGas_BN.toString())
+    const depositGas_BN = await this.L2Provider.estimateGas(tx2)
+    console.log("Fast exit gas", depositGas_BN.toString())
 
-    const despositCost_BN = despositGas_BN.mul(gasPrice)
-    console.log("Fast exit cost (ETH)", utils.formatEther(despositCost_BN))
-    
+    const depositCost_BN = depositGas_BN.mul(gasPrice)
+    console.log("Fast exit cost (ETH)", utils.formatEther(depositCost_BN))
+
     //returns total cost in ETH
-    return utils.formatEther(despositCost_BN.add(approvalCost_BN))
+    return utils.formatEther(depositCost_BN.add(approvalCost_BN))
   }
 
   /**************************************************************/
@@ -2050,7 +2116,7 @@ class NetworkService {
         )
         await approveStatus.wait()
 
-        if (!approveStatus) 
+        if (!approveStatus)
           return false
 
       } else {
@@ -2058,7 +2124,7 @@ class NetworkService {
       }
 
     }
-        
+
     const tx2 = await this.L2LPContract.populateTransaction.clientDepositL2(
       balance_BN,
       currencyAddress,
@@ -2066,15 +2132,15 @@ class NetworkService {
     )
     //console.log("tx2",tx2)
 
-    let despositGas_BN = await this.L2Provider.estimateGas(tx2)
-    
+    let depositGas_BN = await this.L2Provider.estimateGas(tx2)
+
     //returns 94082, which is too low?
     //add 40...
     //BUG BUG BUG - this should not be needed
-    despositGas_BN = despositGas_BN.add('40')
+    depositGas_BN = depositGas_BN.add('40')
 
-    console.log("Deposit gas", despositGas_BN.toString())
-    let depositCost_BN = despositGas_BN.mul(gasPrice)
+    console.log("Deposit gas", depositGas_BN.toString())
+    let depositCost_BN = depositGas_BN.mul(gasPrice)
     console.log("Deposit gas cost (ETH)", utils.formatEther(depositCost_BN))
 
     if(currencyAddress === allAddresses.L2_ETH_Address) {
@@ -2083,10 +2149,14 @@ class NetworkService {
     }
 
     const ccBal = await this.L2Provider.getBalance(this.account)
+
     console.log("Balance:", utils.formatEther(ccBal))
     console.log("Cost to exit:", utils.formatEther(depositCost_BN))
     console.log("Amount to exit:", utils.formatEther(balance_BN))
     console.log("Should be zero:", ccBal.sub(balance_BN.add(depositCost_BN)).toString())
+
+    const time_start = new Date().getTime()
+    console.log("TX start time:", time_start)
 
     const depositTX = await this.L2LPContract.clientDepositL2(
       balance_BN,
@@ -2097,21 +2167,46 @@ class NetworkService {
     //at this point the tx has been submitted, and we are waiting...
     await depositTX.wait()
 
+    const block = await this.L2Provider.getTransaction(depositTX.hash)
+    console.log(' block:', block)
+
     //closes the modal
     updateSignatureStatus_exitLP(true)
 
     // Waiting for the response from L1
-    const [L2ToL1msgHash] = await this.fastWatcher.getMessageHashesFromL2Tx(
+    const [msgHash] = await this.fastWatcher.getMessageHashesFromL2Tx(
       depositTX.hash
     )
-    console.log(' got L2->L1 message hash', L2ToL1msgHash)
+    console.log(' got L2->L1 message hash', msgHash)
 
-    const L1Receipt = await this.fastWatcher.getL1TransactionReceipt(
-      L2ToL1msgHash
+    const receipt = await this.fastWatcher.getL1TransactionReceipt(
+      msgHash
     )
-    console.log(' completed Deposit! L1 tx hash:', L1Receipt.transactionHash)
+    console.log(' completed Deposit! L1 tx hash:', receipt.transactionHash)
 
-    return L1Receipt
+    const time_stop = new Date().getTime()
+    console.log("TX finish time:", time_stop)
+
+    const data = {
+      "key": process.env.REACT_APP_SPEED_CHECK,
+      "hash": depositTX.hash,
+      "l1Tol2": false, //since we are going L2->L1
+      "startTime": time_start,
+      "endTime": time_stop,
+      "block": block.blockNumber,
+      "cdmHash": receipt.transactionHash,
+      "cdmBlock": receipt.blockNumber
+    }
+
+    console.log("Speed checker data payload:", data)
+
+    const speed = await omgxWatcherAxiosInstance(
+      this.masterSystemConfig
+    ).post('send.crossdomainmessage', data)
+
+    console.log("Speed checker:", speed)
+
+    return receipt
   }
 
   /**************************************************************/
@@ -2130,7 +2225,7 @@ class NetworkService {
         L2ERC20Json.abi,
         this.provider.getSigner()
       )
-      
+
       let allowance_BN = await L2ERC20Contract.allowance(
         this.account,
         allAddresses.L2LPAddress
@@ -2148,6 +2243,9 @@ class NetworkService {
       }
     }
 
+    const time_start = new Date().getTime()
+    console.log("TX start time:", time_start)
+
     const depositTX = await this.L2LPContract.clientDepositL2(
       value_Wei_String,
       currencyAddress,
@@ -2157,21 +2255,46 @@ class NetworkService {
     //at this point the tx has been submitted, and we are waiting...
     await depositTX.wait()
 
+    const block = await this.L2Provider.getTransaction(depositTX.hash)
+    console.log(' block:', block)
+
     //closes the modal
     updateSignatureStatus_exitLP(true)
 
     // Waiting for the response from L1
-    const [L2ToL1msgHash] = await this.fastWatcher.getMessageHashesFromL2Tx(
+    const [msgHash] = await this.fastWatcher.getMessageHashesFromL2Tx(
       depositTX.hash
     )
-    console.log(' got L2->L1 message hash', L2ToL1msgHash)
+    console.log(' got L2->L1 message hash', msgHash)
 
-    const L1Receipt = await this.fastWatcher.getL1TransactionReceipt(
-      L2ToL1msgHash
+    const receipt = await this.fastWatcher.getL1TransactionReceipt(
+      msgHash
     )
-    console.log(' completed Deposit! L1 tx hash:', L1Receipt.transactionHash)
+    console.log(' completed Deposit! L1 tx hash:', receipt.transactionHash)
 
-    return L1Receipt
+    const time_stop = new Date().getTime()
+    console.log("TX finish time:", time_stop)
+
+    const data = {
+      "key": process.env.REACT_APP_SPEED_CHECK,
+      "hash": depositTX.hash,
+      "l1Tol2": false, //since we are going L2->L1
+      "startTime": time_start,
+      "endTime": time_stop,
+      "block": block.blockNumber,
+      "cdmHash": receipt.transactionHash,
+      "cdmBlock": receipt.blockNumber
+    }
+
+    console.log("Speed checker data payload:", data)
+
+    const speed = await omgxWatcherAxiosInstance(
+      this.masterSystemConfig
+    ).post('send.crossdomainmessage', data)
+
+    console.log("Speed checker:", speed)
+
+    return receipt
   }
 
   async fetchLookUpPrice(params) {
@@ -2190,19 +2313,12 @@ class NetworkService {
   /*****         DAO Functions               *****/
   /***********************************************/
 
-/*
-const balance = await tokenC.attach(tokenAddress).connect(provider).balanceOf(this.account)
-
-await tokenC.attach(tokenAddress).connect(provider).balanceOf(this.account)
-
-*/
-
   // get DAO Balance
   async getDaoBalance() {
 
     if( this.masterSystemConfig === 'mainnet' ) return
     if( this.masterSystemConfig === 'rinkeby' ) return
-    
+
     if( this.L1orL2 !== 'L2' ) return
     if( this.BobaContract === null ) return
 
@@ -2224,10 +2340,10 @@ await tokenC.attach(tokenAddress).connect(provider).balanceOf(this.account)
 
     if( this.masterSystemConfig === 'mainnet' ) return
     if( this.masterSystemConfig === 'rinkeby' ) return
-    
+
     if( this.L1orL2 !== 'L2' ) return
     if( this.BobaContract === null ) return
-    
+
     try {
       let votes = await this.BobaContract.getCurrentVotes(this.account)
       return { votes: formatEther(votes) }
@@ -2264,7 +2380,7 @@ await tokenC.attach(tokenAddress).connect(provider).balanceOf(this.account)
 
     if( this.masterSystemConfig === 'mainnet' ) return
     if( this.masterSystemConfig === 'rinkeby' ) return
-    
+
     if( this.L1orL2 !== 'L2' ) return
     if( this.delegateContract === null ) return
 
@@ -2289,7 +2405,7 @@ await tokenC.attach(tokenAddress).connect(provider).balanceOf(this.account)
     let signatures = '' //text ? [''] : ['_setProposalThreshold(uint256)'] // the function that will carry out the proposal
     let value = 0
     let description = ''
-    
+
     if( payload.action === 'text-proposal' ) {
       signatures = ['']
       value = 0
